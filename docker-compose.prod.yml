@@ -1,0 +1,19 @@
+name: ${PROJECT_NAME}-go
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    container_name: ${PROJECT_NAME}-go-app
+    restart: always
+    env_file:
+      - .env
+    networks:
+      - template-network
+
+networks:
+  template-network:
+    external: true
+    name: ${PROJECT_NAME}-network

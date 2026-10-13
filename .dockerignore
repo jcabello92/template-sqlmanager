@@ -1,0 +1,18 @@
+.env
+.env.*
+.gitignore
+docker-compose.prod.yml
+README.md
+
+.git/
+
+.DS_Store
+
+# Temporales de Air y binarios
+tmp/
+*.exe
+*.dll
+*.so
+*.dylib
+app
+server
