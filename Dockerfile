@@ -2,6 +2,7 @@
 FROM golang:1.27.2-alpine3.24 AS base
 WORKDIR /app
 RUN apk add --no-cache git build-base
+RUN go install github.com/grpc-ecosystem/grpc-health-probe@latest
 
 # --- FASE 2: DESARROLLO (dev) ---
 FROM base AS dev
@@ -18,4 +19,5 @@ RUN if [ -f go.mod ]; then go mod download && CGO_ENABLED=0 go build -ldflags="-
 FROM alpine:latest AS prod
 WORKDIR /app
 COPY --from=build /app/app ./app
+COPY --from=base /go/bin/grpc-health-probe /usr/local/bin/grpc-health-probe
 CMD ["./app"]

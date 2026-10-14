@@ -15,6 +15,8 @@ import (
 	"template-sqlmanager/internal/interceptors"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/proto"
 )
@@ -40,6 +42,11 @@ func main() {
 		grpc.UnaryInterceptor(interceptors.AuditoriaInterceptor()),
 	)
 
+	// Registrar servicio estándar de Health Check (grpc.health.v1)
+	healthServer := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(server, healthServer)
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+
 	// Habilitar Reflection solo en desarrollo para herramientas como Postman / grpcurl
 	if cfg.AppEnv == "dev" {
 		reflection.Register(server)
@@ -60,6 +67,9 @@ func main() {
 	<-quit
 
 	log.Println("Señal de apagado recibida. Deteniendo servicios de forma segura...")
+
+	// Marcar Health Check como NOT_SERVING para que los balanceadores dejen de enviar tráfico de inmediato
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 
 	// 5. Apagado elegante de gRPC con timeout máximo de 10 segundos
 	stopped := make(chan struct{})

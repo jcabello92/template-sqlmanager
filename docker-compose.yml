@@ -12,6 +12,12 @@ services:
       - .env
     volumes:
       - ./volume/app/src:/app
+    healthcheck:
+      test: ["CMD", "grpc-health-probe", "-addr=localhost:${GRPC_PORT:-50051}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     networks:
       - template-network
 
