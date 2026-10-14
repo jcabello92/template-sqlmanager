@@ -15,6 +15,7 @@ import (
 	"template-sqlmanager/internal/interceptors"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -38,6 +39,12 @@ func main() {
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(interceptors.AuditoriaInterceptor()),
 	)
+
+	// Habilitar Reflection solo en desarrollo para herramientas como Postman / grpcurl
+	if cfg.AppEnv == "dev" {
+		reflection.Register(server)
+		log.Println("gRPC Server Reflection habilitado (Modo desarrollo).")
+	}
 
 	// 3. Iniciar el servidor gRPC en segundo plano (no bloqueante)
 	go func() {
