@@ -7,6 +7,7 @@ import (
 
 	"template-sqlmanager/internal/config"
 	"template-sqlmanager/internal/database"
+	"template-sqlmanager/internal/interceptors"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
@@ -28,7 +29,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error abriendo el puerto %s: %v", address, err)
 	}
-	server := grpc.NewServer()
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptors.AuditoriaInterceptor()),
+	)
 	
 	log.Printf("Servidor gRPC iniciado en %s (Modo: %s)\n", address, cfg.AppEnv)
 	if err := server.Serve(lis); err != nil {
