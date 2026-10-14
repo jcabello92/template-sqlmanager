@@ -1,12 +1,12 @@
-name: ${PROJECT_NAME}-go
+name: ${PROJECT_NAME}-sqlmanager
 
 services:
-  app:
+  sqlmanager:
     build:
       context: .
       dockerfile: Dockerfile
       target: dev
-    container_name: ${PROJECT_NAME}-go-app
+    container_name: ${PROJECT_NAME}-${DB_NAME}-sqlmanager
     restart: always
     env_file:
       - .env
