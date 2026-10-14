@@ -1,10 +1,11 @@
 package config
 
 import (
-    "log"
-    "os"
+	"log"
+	"os"
+	"strconv"
 
-    "github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -18,14 +19,19 @@ type Config struct {
 	DBUser     string
 	DBPassword string
 	DBName     string
+
+	// Pool de conexiones
+	DBMaxOpenConns    int
+	DBMaxIdleConns    int
+	DBConnMaxLifetime int // en minutos
 }
 
 // LoadEnv carga las variables de entorno al sistema.
 func LoadEnv() *Config {
-    err := godotenv.Load()
-    if err != nil {
-        log.Println("ADVERTENCIA: No se encontró el archivo con las variables de entorno. Se intentarán leer desde el entorno del sistema")
-    }
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("ADVERTENCIA: No se encontró el archivo con las variables de entorno. Se intentarán leer desde el entorno del sistema")
+	}
 
 	cfg := &Config{
 		AppEnv:     GetEnvOrDefault("APP_ENV", "prod"),
@@ -38,6 +44,10 @@ func LoadEnv() *Config {
 		DBUser:     GetEnvOrCrash("DB_USER"),
 		DBPassword: GetEnvOrCrash("DB_PASSWORD"),
 		DBName:     GetEnvOrCrash("DB_NAME"),
+
+		DBMaxOpenConns:    GetEnvIntOrDefault("DB_MAX_OPEN_CONNS", 25),
+		DBMaxIdleConns:    GetEnvIntOrDefault("DB_MAX_IDLE_CONNS", 10),
+		DBConnMaxLifetime: GetEnvIntOrDefault("DB_CONN_MAX_LIFETIME", 15),
 	}
 
 	return cfg
@@ -47,6 +57,16 @@ func LoadEnv() *Config {
 func GetEnvOrDefault(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists && value != "" {
 		return value
+	}
+	return fallback
+}
+
+// GetEnvIntOrDefault busca una variable de entorno numérica entera; si no existe o no es válida, devuelve un valor por defecto.
+func GetEnvIntOrDefault(key string, fallback int) int {
+	if value, exists := os.LookupEnv(key); exists && value != "" {
+		if intVal, err := strconv.Atoi(value); err == nil && intVal > 0 {
+			return intVal
+		}
 	}
 	return fallback
 }

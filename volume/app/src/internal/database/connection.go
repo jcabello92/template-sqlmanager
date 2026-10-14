@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"template-sqlmanager/internal/config"
 
@@ -24,7 +25,7 @@ func BuildPostgreSQLDSN(cfg *config.Config) string {
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 }
 
-// Connect conecta a la base de datos; tanto si es MySQL, como si es PostgreSQL.
+// Connect conecta a la base de datos (MySQL o PostgreSQL) y calibra su pool de conexiones.
 func Connect(cfg *config.Config) *gorm.DB {
 	var db *gorm.DB
 	var err error
@@ -34,21 +35,33 @@ func Connect(cfg *config.Config) *gorm.DB {
 
 	// Se configura la conexión según el entorno: mysql (mariadb) o postgres
 	switch cfg.DBDriver {
-		case "mysql":
-			dsn := BuildMySQLDSN(cfg)
-			db, err = gorm.Open(mysql.Open(dsn), gormConfig)
-		case "postgres":
-			dsn := BuildPostgreSQLDSN(cfg)
-			db, err = gorm.Open(postgres.Open(dsn), gormConfig)
-		default:
-			log.Fatalf("ERROR CRÍTICO: Driver '%s' no soportado.", cfg.DBDriver)
+	case "mysql":
+		dsn := BuildMySQLDSN(cfg)
+		db, err = gorm.Open(mysql.Open(dsn), gormConfig)
+	case "postgres":
+		dsn := BuildPostgreSQLDSN(cfg)
+		db, err = gorm.Open(postgres.Open(dsn), gormConfig)
+	default:
+		log.Fatalf("ERROR CRÍTICO: Driver '%s' no soportado.", cfg.DBDriver)
 	}
 
 	if err != nil {
 		log.Fatalf("ERROR CRÍTICO: No se pudo conectar a %s (%s): %v", cfg.DBDriver, cfg.DBName, err)
 	}
 
-	log.Printf("Conexión a %s (%s) establecida exitosamente.", cfg.DBDriver, cfg.DBName)
+	// Calibración del pool de conexiones nativo de Go (database/sql)
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatalf("ERROR CRÍTICO: No se pudo obtener el pool de conexiones: %v", err)
+	}
+
+	sqlDB.SetMaxOpenConns(cfg.DBMaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.DBMaxIdleConns)
+	sqlDB.SetConnMaxLifetime(time.Duration(cfg.DBConnMaxLifetime) * time.Minute)
+
+	log.Printf("Conexión a %s (%s) establecida exitosamente (Pool: MaxOpen=%d, MaxIdle=%d, MaxLifetime=%dm).",
+		cfg.DBDriver, cfg.DBName, cfg.DBMaxOpenConns, cfg.DBMaxIdleConns, cfg.DBConnMaxLifetime)
+
 	return db
 }
 
